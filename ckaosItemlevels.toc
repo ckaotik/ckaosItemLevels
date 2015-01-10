@@ -1,0 +1,14 @@
+## Interface: 60000
+## Version: 6.0v1
+## Author: ckaotik
+
+## Title: ckaosItemLevels
+## Notes: Display item level on item slots
+
+#@no-lib-strip@
+# libraries
+libs\LibStub.lua
+libs\LibItemUpgradeInfo-1.0\LibItemUpgradeInfo-1.0.xml
+#@end-no-lib-strip@
+
+ckaosItemLevels.lua
