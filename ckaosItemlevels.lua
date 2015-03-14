@@ -89,7 +89,7 @@ local function UpdateButtonLevel(self, texture)
 
 	if itemLink then
 		local _, _, quality, itemLevel, _, _, _, _, equipSlot = GetItemInfo(itemLink)
-		if itemLevel and itemLevel > 1 and equipSlot ~= '' and equipSlot ~= 'INVTYPE_BAG' then
+		if itemLevel and equipSlot ~= '' and equipSlot ~= 'INVTYPE_BAG' then
 			-- local r, g, b = GetItemQualityColor(quality)
 			itemLevel = LibItemUpgrade:GetUpgradedItemLevel(itemLink) or itemLevel
 			button.itemLevel:SetText(itemLevel)
@@ -113,9 +113,49 @@ local function Update()
 		UpdateButtonLevel(button, true)
 	end
 end
+addon.PLAYER_AVG_ITEM_LEVEL_UPDATE = Update
+addon.PLAYER_AVG_ITEM_LEVEL_READY = Update
 
-local function InitVoidStorage()
-	if not IsAddOnLoaded('Blizzard_VoidStorageUI') then return false end
+-- --------------------------------------------------------
+--  LoadWith
+-- --------------------------------------------------------
+local loadWith = {}
+function addon:LoadWith(otherAddon, handler)
+	if IsAddOnLoaded(otherAddon) then
+		-- addon is available, directly run handler code
+		return handler(self, nil, otherAddon)
+	else
+		if loadWith[otherAddon] then
+			for _, callback in pairs(loadWith[otherAddon]) do
+				if callback == handler then
+					return
+				end
+			end
+		end
+		-- handler is not yet registered
+		if not loadWith[otherAddon] then loadWith[otherAddon] = {} end
+		tinsert(loadWith[otherAddon], handler)
+		self:RegisterEvent('ADDON_LOADED')
+	end
+end
+function addon:ADDON_LOADED(event, arg1)
+	if loadWith[arg1] then
+		for key, callback in pairs(loadWith[arg1]) do
+			if callback(self, event, arg1) then
+				-- handler succeeded, remove from task list
+				loadWith[arg1][key] = nil
+			end
+		end
+	end
+	if not next(loadWith) then
+		self:UnregisterEvent('ADDON_LOADED')
+	end
+end
+addon:RegisterEvent('ADDON_LOADED')
+
+-- --------------------------------------------------------
+
+local function InitVoidStorage(self)
 	AddButton(_G.VoidStorageStorageButton1)
 	getItemLink[_G.VoidStorageItemButton_OnEnter] = function(self)
 		if not self.hasItem then return end
@@ -127,41 +167,27 @@ local function InitVoidStorage()
 	return true
 end
 
--- --------------------------------------------------------
+local function Initialize(self)
+	hooksecurefunc('SetItemButtonTexture', UpdateButtonLevel)
+	hooksecurefunc('BankFrameItemButton_Update', function(self) UpdateButtonLevel(self, true) end)
+	hooksecurefunc('EquipmentFlyout_DisplayButton', UpdateButtonLevel)
+	hooksecurefunc('EquipmentFlyout_DisplaySpecialButton', HideButtonLevel)
 
-function addon:PLAYER_AVG_ITEM_LEVEL_UPDATE()
-	Update()
-end
-addon:RegisterEvent('PLAYER_AVG_ITEM_LEVEL_UPDATE')
-
-function addon:PLAYER_AVG_ITEM_LEVEL_READY()
-	Update()
-end
-addon:RegisterEvent('PLAYER_AVG_ITEM_LEVEL_READY')
-
-function addon:ADDON_LOADED(event, arg1)
-	if arg1 == addonName then
-		hooksecurefunc('SetItemButtonTexture', UpdateButtonLevel)
-		hooksecurefunc('BankFrameItemButton_Update', function(self) UpdateButtonLevel(self, true) end)
-		hooksecurefunc('EquipmentFlyout_DisplayButton', UpdateButtonLevel)
-		hooksecurefunc('EquipmentFlyout_DisplaySpecialButton', HideButtonLevel)
-
-		hooksecurefunc('CreateFrame', function(frameType, name, parent, templates, id)
-			if frameType:lower() == 'button' and templates and templates:lower():find('itembutton') then
-				if not name then return end
-				if parent and type(parent) == 'table' then
-					name = name:gsub('$parent', parent:GetName() or '')
-				end
-				AddButton(_G[name])
+	hooksecurefunc('CreateFrame', function(frameType, name, parent, templates, id)
+		if frameType:lower() == 'button' and templates and templates:lower():find('itembutton') then
+			if not name then return end
+			if parent and type(parent) == 'table' then
+				name = name:gsub('$parent', parent:GetName() or '')
 			end
-		end)
-
-		if InitVoidStorage() then
-			self:UnregisterEvent('ADDON_LOADED')
+			AddButton(_G[name])
 		end
-	elseif addonName == 'Blizzard_VoidStorageUI' then
-		InitVoidStorage()
-		self:UnregisterEvent('ADDON_LOADED')
-	end
+	end)
+
+	self:LoadWith('Blizzard_VoidStorageUI', InitVoidStorage)
+
+	self:RegisterEvent('PLAYER_AVG_ITEM_LEVEL_UPDATE')
+	self:RegisterEvent('PLAYER_AVG_ITEM_LEVEL_READY')
+
+	return true
 end
-addon:RegisterEvent('ADDON_LOADED')
+addon:LoadWith(addonName, Initialize)
