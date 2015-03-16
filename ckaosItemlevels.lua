@@ -1,6 +1,7 @@
 local addonName, addon, _ = ...
 
 local LibItemUpgrade = LibStub('LibItemUpgradeInfo-1.0')
+local LIC = LibStub('LibItemLocations')
 
 -- GLOBALS: _G, GameTooltip
 -- GLOBALS: IsAddOnLoaded, GetItemInfo, GetContainerItemLink, GetInventoryItemLink, GetAverageItemLevel, GetVoidItemInfo
@@ -75,12 +76,12 @@ local function UpdateButtonLevel(self, texture)
 		or (button.hasItem and type(button.hasItem) == 'string' and button.hasItem)
 	if not itemLink and button.GetItem then
 		itemLink = button:GetItem()
-	elseif not itemLink and button.UpdateTooltip then
-		-- tooltip scan as last resort
-		local itemLinkFunc = getItemLink[button.UpdateTooltip]
-		if itemLinkFunc then
-			itemLink = itemLinkFunc(button)
-		elseif not GameTooltip:IsShown() then
+	elseif not itemLink then
+		local func = button.UpdateTooltip or button:GetScript('OnEnter')
+		if func and getItemLink[func] then
+			itemLink = getItemLink[func](button)
+		elseif button.UpdateTooltip and not GameTooltip:IsShown() then
+			-- tooltip scan as last resort
 			button:UpdateTooltip()
 			_, itemLink = GameTooltip:GetItem()
 			GameTooltip:Hide()
@@ -167,11 +168,29 @@ local function InitVoidStorage(self)
 	return true
 end
 
+local function InitInspect()
+	getItemLink[_G.InspectPaperDollItemSlotButton_OnEnter] = function(self)
+		if not self.hasItem then return end
+		return GetInventoryItemLink(InspectFrame.unit, self:GetID())
+	end
+	local buttons = { InspectPaperDollItemsFrame:GetChildren() }
+	for _, button in pairs(buttons) do
+		button.UpdateTooltip = _G.InspectPaperDollItemSlotButton_OnEnter
+		AddButton(button)
+	end
+end
+
 local function Initialize(self)
 	hooksecurefunc('SetItemButtonTexture', UpdateButtonLevel)
 	hooksecurefunc('BankFrameItemButton_Update', function(self) UpdateButtonLevel(self, true) end)
-	hooksecurefunc('EquipmentFlyout_DisplayButton', UpdateButtonLevel)
-	hooksecurefunc('EquipmentFlyout_DisplaySpecialButton', HideButtonLevel)
+	hooksecurefunc('EquipmentFlyout_DisplayButton', function(self, itemSlot)
+		if type(self.location) == 'number' and self.location < EQUIPMENTFLYOUT_FIRST_SPECIAL_LOCATION then
+			_, _, self.itemLink = LIC:GetLocationItemInfo(self.location)
+			UpdateButtonLevel(self, true)
+		else
+			HideButtonLevel(self)
+		end
+	end)
 
 	hooksecurefunc('CreateFrame', function(frameType, name, parent, templates, id)
 		if frameType:lower() == 'button' and templates and templates:lower():find('itembutton') then
@@ -184,6 +203,7 @@ local function Initialize(self)
 	end)
 
 	self:LoadWith('Blizzard_VoidStorageUI', InitVoidStorage)
+	self:LoadWith('Blizzard_InspectUI', InitInspect)
 
 	self:RegisterEvent('PLAYER_AVG_ITEM_LEVEL_UPDATE')
 	self:RegisterEvent('PLAYER_AVG_ITEM_LEVEL_READY')

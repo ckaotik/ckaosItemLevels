@@ -8,6 +8,7 @@
 #@no-lib-strip@
 # libraries
 libs\LibStub.lua
+libs\LibItemLocations.lua
 libs\LibItemUpgradeInfo-1.0\LibItemUpgradeInfo-1.0.xml
 #@end-no-lib-strip@
 
