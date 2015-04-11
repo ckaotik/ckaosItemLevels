@@ -170,7 +170,7 @@ end
 
 local function InitInspect()
 	getItemLink[_G.InspectPaperDollItemSlotButton_OnEnter] = function(self)
-		if not self.hasItem then return end
+		if not self.hasItem or not InspectFrame.unit then return end
 		return GetInventoryItemLink(InspectFrame.unit, self:GetID())
 	end
 	local buttons = { InspectPaperDollItemsFrame:GetChildren() }
