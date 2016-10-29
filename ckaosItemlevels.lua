@@ -12,6 +12,9 @@ addon:SetScript('OnEvent', function(self, event, ...)
 	if self[event] then self[event](self, event, ...) end
 end)
 
+-- TODO this is a cutoff value to avoid low level item level clutter.
+addon.minItemLevel = select(2, GetAverageItemLevel()) - 100
+
 -- TODO: use different color scale
 local buttons, colors = {}, { -- 0.55,0.55,0.55 -- gray
 	{1 ,0, 0}, 			-- red 			-- worst item
@@ -57,6 +60,10 @@ local function HideButtonLevel(self)
 end
 
 local function UpdateButtonLevel(self, texture)
+	if addon.minItemLevel < 0 then
+		addon.minItemLevel = select(2, GetAverageItemLevel()) - 100
+	end
+
 	local button = (self.icon or self.Icon) and self or self:GetParent()
 	if not button then return end
 	if not texture or texture == '' or button.noItemLevel then
@@ -93,6 +100,7 @@ local function UpdateButtonLevel(self, texture)
 		if itemLevel and equipSlot ~= '' and equipSlot ~= 'INVTYPE_BAG' then
 			-- local r, g, b = GetItemQualityColor(quality)
 			itemLevel = LibItemUpgrade:GetUpgradedItemLevel(itemLink) or itemLevel
+			if itemLevel <= addon.minItemLevel then return end
 			button.itemLevel:SetText(itemLevel)
 			button.itemLevel:SetTextColor(GetItemLevelColor(itemLevel))
 		end
