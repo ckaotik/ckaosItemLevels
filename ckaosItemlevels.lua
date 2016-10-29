@@ -1,7 +1,7 @@
 local addonName, addon, _ = ...
 
 local LibItemUpgrade = LibStub('LibItemUpgradeInfo-1.0')
-local LIC = LibStub('LibItemLocations')
+local LibItemLocations = LibStub('LibItemLocations')
 
 -- GLOBALS: _G, GameTooltip
 -- GLOBALS: IsAddOnLoaded, GetItemInfo, GetContainerItemLink, GetInventoryItemLink, GetAverageItemLevel, GetVoidItemInfo
@@ -185,7 +185,7 @@ local function Initialize(self)
 	hooksecurefunc('BankFrameItemButton_Update', function(self) UpdateButtonLevel(self, true) end)
 	hooksecurefunc('EquipmentFlyout_DisplayButton', function(self, itemSlot)
 		if type(self.location) == 'number' and self.location < EQUIPMENTFLYOUT_FIRST_SPECIAL_LOCATION then
-			_, _, self.itemLink = LIC:GetLocationItemInfo(self.location)
+			_, _, self.itemLink = LibItemLocations:GetLocationItemInfo(self.location)
 			UpdateButtonLevel(self, true)
 		else
 			HideButtonLevel(self)
