@@ -98,6 +98,12 @@ local function UpdateButtonLevel(self, texture)
 	if itemLink then
 		local _, _, quality, itemLevel, _, _, _, _, equipSlot = GetItemInfo(itemLink)
 		if itemLevel and equipSlot ~= '' and equipSlot ~= 'INVTYPE_BAG' then
+			if quality == _G.LE_ITEM_QUALITY_ARTIFACT
+				and (equipSlot == 'INVTYPE_WEAPONOFFHAND' or equipSlot == 'INVTYPE_SHIELD') then
+				-- Artifact offhand shares main hand's item level. Don't display separately.
+				return
+			end
+
 			-- local r, g, b = GetItemQualityColor(quality)
 			itemLevel = LibItemUpgrade:GetUpgradedItemLevel(itemLink) or itemLevel
 			if itemLevel <= addon.minItemLevel then return end
