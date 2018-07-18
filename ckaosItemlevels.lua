@@ -1,6 +1,6 @@
 local addonName, addon, _ = ...
 
-local LibItemUpgrade = LibStub('LibItemUpgradeInfo-1.0')
+local LibItemLocations = LibStub('LibItemLocations')
 
 -- GLOBALS: _G, GameTooltip
 -- GLOBALS: IsAddOnLoaded, GetItemInfo, GetContainerItemLink, GetInventoryItemLink, GetAverageItemLevel, GetVoidItemInfo
