@@ -1,7 +1,6 @@
 local addonName, addon, _ = ...
 
 local LibItemUpgrade = LibStub('LibItemUpgradeInfo-1.0')
-local LibItemLocations = LibStub('LibItemLocations')
 
 -- GLOBALS: _G, GameTooltip
 -- GLOBALS: IsAddOnLoaded, GetItemInfo, GetContainerItemLink, GetInventoryItemLink, GetAverageItemLevel, GetVoidItemInfo
@@ -95,22 +94,24 @@ local function UpdateButtonLevel(self, texture)
 		end
 	end
 
-	if itemLink then
-		local _, _, quality, itemLevel, _, _, _, _, equipSlot = GetItemInfo(itemLink)
-		if itemLevel and equipSlot ~= '' and equipSlot ~= 'INVTYPE_BAG' then
-			if quality == _G.LE_ITEM_QUALITY_ARTIFACT
-				and (equipSlot == 'INVTYPE_WEAPONOFFHAND' or equipSlot == 'INVTYPE_SHIELD') then
-				-- Artifact offhand shares main hand's item level. Don't display separately.
-				return
-			end
+	-- We tried really hard, but there's just no link :(
+	if not itemLink then return end
 
-			-- local r, g, b = GetItemQualityColor(quality)
-			itemLevel = LibItemUpgrade:GetUpgradedItemLevel(itemLink) or itemLevel
-			if itemLevel <= addon.minItemLevel then return end
-			button.itemLevel:SetText(itemLevel)
-			button.itemLevel:SetTextColor(GetItemLevelColor(itemLevel))
-		end
+	local inventoryType = C_Item.GetItemInventoryTypeByID(itemLink)
+	if inventoryType == Enum.InventoryType.IndexBagType or inventoryType == Enum.InventoryType.IndexNonEquipType then
+		return
 	end
+
+	local quality = C_Item.GetItemQualityByID(itemLink)
+	if quality == Enum.ItemQuality.Artifact and (inventoryType == Enum.InventoryType.IndexWeaponoffhandType or inventoryType == Enum.InventoryType.IndexShieldType) then
+		-- Artifact offhand shares main hand's item level. Don't display separately.
+		return
+	end
+
+	local itemLevel = GetDetailedItemLevelInfo(itemLink)
+	if not itemLevel or itemLevel <= addon.minItemLevel then return end
+	button.itemLevel:SetText(itemLevel)
+	button.itemLevel:SetTextColor(GetItemLevelColor(itemLevel))
 end
 
 local function AddButton(button)
@@ -220,7 +221,8 @@ local function Initialize(self)
 	self:LoadWith('Blizzard_InspectUI', InitInspect)
 
 	self:RegisterEvent('PLAYER_AVG_ITEM_LEVEL_UPDATE')
-	self:RegisterEvent('PLAYER_AVG_ITEM_LEVEL_READY')
+	-- @todo Does this event still exist?
+	-- self:RegisterEvent('PLAYER_AVG_ITEM_LEVEL_READY')
 
 	return true
 end
